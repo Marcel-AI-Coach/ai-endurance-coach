@@ -1,5 +1,5 @@
 # main.py
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 
@@ -29,7 +29,12 @@ def db_test(db: Session = Depends(get_db)):
             "result": result
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
+        return {
+            "status": "error",
+            "endpoint": "db-test",
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }
 
 
 @app.get("/db-test-simple")
@@ -41,7 +46,12 @@ def db_test_simple():
             "database": "connected"
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
+        return {
+            "status": "error",
+            "endpoint": "db-test-simple",
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }
 
 
 @app.get("/planning-data")
@@ -50,7 +60,12 @@ def planning_data(athlete_id: int, week_start: str, db: Session = Depends(get_db
         data = load_weekly_planning_data(db, athlete_id, week_start)
 
         if not data["athlete"]:
-            raise HTTPException(status_code=404, detail="Athlet nicht gefunden oder nicht aktiv.")
+            return {
+                "status": "error",
+                "endpoint": "planning-data",
+                "error_type": "NotFound",
+                "error_message": "Athlet nicht gefunden oder nicht aktiv."
+            }
 
         return {
             "status": "ok",
@@ -58,9 +73,10 @@ def planning_data(athlete_id: int, week_start: str, db: Session = Depends(get_db
             "week_start": week_start,
             "data": data
         }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=f"Ungültiges Datumsformat: {str(e)}")
-    except HTTPException:
-        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Fehler beim Laden der Planungsdaten: {str(e)}")
+        return {
+            "status": "error",
+            "endpoint": "planning-data",
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }
