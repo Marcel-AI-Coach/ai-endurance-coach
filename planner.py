@@ -24,7 +24,6 @@ def load_weekly_planning_data(db, athlete_id: int, week_start: str):
         SELECT *
         FROM athlete_sports
         WHERE athlete_id = :athlete_id
-          AND active = true
     """)
 
     sports_query = text("""
