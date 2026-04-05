@@ -1,25 +1,32 @@
+# db.py
 import os
-from psycopg import connect
-from psycopg.rows import dict_row
-from dotenv import load_dotenv
+from sqlalchemy import create_engine, text
+from sqlalchemy.orm import sessionmaker
 
-# Lädt lokale Umgebungsvariablen aus einer .env-Datei
-# Auf Railway ist das meist nicht nötig, schadet aber nicht
-load_dotenv()
+DATABASE_URL = os.getenv("DATABASE_URL")
 
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL ist nicht gesetzt.")
 
-def get_db_connection():
-    """
-    Erstellt eine Verbindung zur PostgreSQL-Datenbank.
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True
+)
 
-    Railway stellt meist eine DATABASE_URL als Umgebungsvariable bereit.
-    Beispiel:
-    postgresql://user:password@host:port/dbname
-    """
-    database_url = os.getenv("DATABASE_URL")
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-    if not database_url:
-        raise ValueError("DATABASE_URL wurde nicht gefunden.")
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    conn = connect(database_url, row_factory=dict_row)
-    return conn
+def test_db_connection():
+    with engine.connect() as connection:
+        connection.execute(text("SELECT 1"))
+    return True
