@@ -213,6 +213,58 @@ def choose_best_preference(preferences_for_day, primary_sport_lookup):
     return sorted_preferences[0]
 
 
+def get_long_run_candidate_for_day(date_string, weekday_name, preferences, primary_sport_lookup):
+    preferences_for_day = get_preferences_for_weekday(preferences, weekday_name)
+
+    long_run_preferences = []
+    for preference in preferences_for_day:
+        if preference.get("preferred_session_type") == "long_run":
+            long_run_preferences.append(preference)
+
+    if not long_run_preferences:
+        return None
+
+    best_preference = choose_best_preference(long_run_preferences, primary_sport_lookup)
+
+    if not best_preference:
+        return None
+
+    priority = best_preference.get("priority")
+    if priority is None:
+        priority = 9999
+
+    return {
+        "date": date_string,
+        "weekday": weekday_name,
+        "preference": best_preference,
+        "priority": priority
+    }
+
+
+def choose_single_long_run_date(week_dates, preferences, primary_sport_lookup):
+    candidates = []
+
+    for date_string in week_dates:
+        weekday_name = get_day_name(date_string)
+        candidate = get_long_run_candidate_for_day(
+            date_string,
+            weekday_name,
+            preferences,
+            primary_sport_lookup
+        )
+        if candidate:
+            candidates.append(candidate)
+
+    if not candidates:
+        return None
+
+    def sort_key(candidate):
+        return (candidate["priority"], candidate["date"])
+
+    sorted_candidates = sorted(candidates, key=sort_key)
+    return sorted_candidates[0]["date"]
+
+
 def build_preview_item_for_rest_day(date_string: str, weekday_name: str, reason: str):
     return {
         "date": date_string,
@@ -311,6 +363,12 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
     sport_lookup = build_sport_lookup(data["sports"])
     primary_sport_lookup = build_primary_sport_lookup(data["athlete_sports"])
 
+    selected_long_run_date = choose_single_long_run_date(
+        data["week_dates"],
+        data["athlete_training_preferences"],
+        primary_sport_lookup
+    )
+
     preview_days = []
 
     for date_string in data["week_dates"]:
@@ -388,6 +446,17 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
             )
             continue
 
+        if best_preference.get("preferred_session_type") == "long_run":
+            if selected_long_run_date is not None and date_string != selected_long_run_date:
+                preview_days.append(
+                    build_preview_item_for_rest_day(
+                        date_string,
+                        weekday_name,
+                        "long_run_not_selected_for_this_week"
+                    )
+                )
+                continue
+
         preview_days.append(
             build_preview_item_for_preference(
                 date_string,
@@ -403,6 +472,7 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
         "athlete_id": athlete_id,
         "week_start": week_start,
         "athlete": data["athlete"],
+        "selected_long_run_date": selected_long_run_date,
         "preview_days": preview_days
     }
 
