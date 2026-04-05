@@ -8,6 +8,9 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     DATABASE_URL = "postgresql://postgres:YgtAjnPfOQNlOmmgSsGXwmXeIqjMmxBK@postgres-icm2.railway.internal:5432/railway"
 
+if DATABASE_URL.startswith("postgresql://"):
+    DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
+
 engine = create_engine(
     DATABASE_URL,
     pool_pre_ping=True
