@@ -282,16 +282,19 @@ def build_preview_item_for_preference(date_string: str, weekday_name: str, prefe
         else:
             final_duration = min(final_duration, availability_max_duration)
 
+    sport_name = sport.get("name") if sport else "Training"
+    session_type = preference.get("preferred_session_type")
+
     return {
         "date": date_string,
         "weekday": weekday_name,
         "planned": True,
         "reason": "training_preference",
         "sport_id": preference.get("sport_id"),
-        "sport_name": sport.get("name") if sport else None,
-        "session_type": preference.get("preferred_session_type"),
+        "sport_name": sport_name,
+        "session_type": session_type,
         "duration_minutes": final_duration,
-        "title": f"{sport.get('name') if sport else 'Training'} - {preference.get('preferred_session_type')}",
+        "title": f"{sport_name} - {session_type}",
         "description": "Automatisch aus athlete_training_preferences erzeugt"
     }
 
@@ -401,4 +404,95 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
         "week_start": week_start,
         "athlete": data["athlete"],
         "preview_days": preview_days
+    }
+
+
+def save_week_plan(db, athlete_id: int, week_start: str):
+    preview_result = generate_week_preview(db, athlete_id, week_start)
+
+    if preview_result.get("status") != "ok":
+        return preview_result
+
+    insert_query = text("""
+        INSERT INTO training_sessions (
+            athlete_id,
+            sport_id,
+            date,
+            planned,
+            completed,
+            title,
+            description,
+            duration_minutes,
+            session_type,
+            source
+        )
+        VALUES (
+            :athlete_id,
+            :sport_id,
+            :date,
+            :planned,
+            :completed,
+            :title,
+            :description,
+            :duration_minutes,
+            :session_type,
+            :source
+        )
+        RETURNING id
+    """)
+
+    saved_sessions = []
+    skipped_days = []
+
+    for day in preview_result["preview_days"]:
+        if day["reason"] == "existing_training_session":
+            skipped_days.append({
+                "date": day["date"],
+                "reason": "existing_training_session"
+            })
+            continue
+
+        if day["planned"] is not True:
+            skipped_days.append({
+                "date": day["date"],
+                "reason": day["reason"]
+            })
+            continue
+
+        result = db.execute(
+            insert_query,
+            {
+                "athlete_id": athlete_id,
+                "sport_id": day["sport_id"],
+                "date": day["date"],
+                "planned": True,
+                "completed": False,
+                "title": day["title"],
+                "description": day["description"],
+                "duration_minutes": day["duration_minutes"],
+                "session_type": day["session_type"],
+                "source": "internal_generator"
+            }
+        ).mappings().first()
+
+        saved_sessions.append({
+            "id": result["id"],
+            "date": day["date"],
+            "title": day["title"],
+            "sport_id": day["sport_id"],
+            "sport_name": day["sport_name"],
+            "session_type": day["session_type"],
+            "duration_minutes": day["duration_minutes"]
+        })
+
+    db.commit()
+
+    return {
+        "status": "ok",
+        "athlete_id": athlete_id,
+        "week_start": week_start,
+        "saved_count": len(saved_sessions),
+        "skipped_count": len(skipped_days),
+        "saved_sessions": saved_sessions,
+        "skipped_days": skipped_days
     }
