@@ -52,19 +52,19 @@ def db_test(db: Session = Depends(get_db)):
 
 @app.get("/db-test-simple")
 def db_test_simple():
-    try:
-        test_db_connection()
+    result = test_db_connection()
+
+    if result is True:
         return {
             "status": "ok",
             "database": "connected"
         }
-    except Exception as e:
-        return {
-            "status": "error",
-            "endpoint": "db-test-simple",
-            "error_type": type(e).__name__,
-            "error_message": str(e)
-        }
+
+    return {
+        "status": "error",
+        "endpoint": "db-test-simple",
+        "error_message": str(result)
+    }
 
 
 @app.get("/planning-data")
@@ -76,7 +76,6 @@ def planning_data(athlete_id: int, week_start: str, db: Session = Depends(get_db
             return {
                 "status": "error",
                 "endpoint": "planning-data",
-                "error_type": "NotFound",
                 "error_message": "Athlet nicht gefunden oder nicht aktiv."
             }
 
