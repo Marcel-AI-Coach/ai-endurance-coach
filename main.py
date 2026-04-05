@@ -1,4 +1,5 @@
 # main.py
+import os
 from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -17,6 +18,18 @@ def root():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+@app.get("/env-check")
+def env_check():
+    database_url = os.getenv("DATABASE_URL")
+
+    return {
+        "status": "ok",
+        "database_url_exists": database_url is not None,
+        "database_url_not_empty": bool(database_url),
+        "database_url_prefix": database_url[:20] if database_url else None
+    }
 
 
 @app.get("/db-test")
