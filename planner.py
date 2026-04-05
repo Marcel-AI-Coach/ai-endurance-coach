@@ -407,6 +407,16 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
     }
 
 
+def get_next_training_session_id(db):
+    query = text("""
+        SELECT COALESCE(MAX(id), 0) + 1 AS next_id
+        FROM training_sessions
+    """)
+
+    result = db.execute(query).mappings().first()
+    return result["next_id"]
+
+
 def save_week_plan(db, athlete_id: int, week_start: str):
     preview_result = generate_week_preview(db, athlete_id, week_start)
 
@@ -415,6 +425,7 @@ def save_week_plan(db, athlete_id: int, week_start: str):
 
     insert_query = text("""
         INSERT INTO training_sessions (
+            id,
             athlete_id,
             sport_id,
             date,
@@ -427,6 +438,7 @@ def save_week_plan(db, athlete_id: int, week_start: str):
             source
         )
         VALUES (
+            :id,
             :athlete_id,
             :sport_id,
             :date,
@@ -443,6 +455,7 @@ def save_week_plan(db, athlete_id: int, week_start: str):
 
     saved_sessions = []
     skipped_days = []
+    next_id = get_next_training_session_id(db)
 
     for day in preview_result["preview_days"]:
         if day["reason"] == "existing_training_session":
@@ -462,6 +475,7 @@ def save_week_plan(db, athlete_id: int, week_start: str):
         result = db.execute(
             insert_query,
             {
+                "id": next_id,
                 "athlete_id": athlete_id,
                 "sport_id": day["sport_id"],
                 "date": day["date"],
@@ -484,6 +498,8 @@ def save_week_plan(db, athlete_id: int, week_start: str):
             "session_type": day["session_type"],
             "duration_minutes": day["duration_minutes"]
         })
+
+        next_id += 1
 
     db.commit()
 
