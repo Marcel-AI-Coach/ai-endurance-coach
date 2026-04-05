@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    DATABASE_URL = "postgresql://postgres:YgtAjnPfOQNlOmmgSsGXwmXeIqjMmxBK@postgres-icm2.railway.internal:5432/railway"
+    raise RuntimeError("DATABASE_URL ist nicht gesetzt.")
 
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg://", 1)
