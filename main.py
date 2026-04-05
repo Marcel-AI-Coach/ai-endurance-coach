@@ -4,4 +4,4 @@ app = FastAPI()
 
 @app.get("/")
 def root():
-    return {"status": "AI Endurance Coach running"}
+    return {"status": "Test Deployment Running"}
