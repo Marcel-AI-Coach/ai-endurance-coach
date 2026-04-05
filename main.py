@@ -2,6 +2,7 @@
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
+from planner import load_weekly_planning_data
 
 from db import get_db, test_db_connection
 
@@ -37,3 +38,22 @@ def db_test_simple():
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Datenbankfehler: {str(e)}")
+
+@app.get("/planning-data")
+def planning_data(athlete_id: int, week_start: str, db: Session = Depends(get_db)):
+    try:
+        data = load_weekly_planning_data(db, athlete_id, week_start)
+
+        if not data["athlete"]:
+            raise HTTPException(status_code=404, detail="Athlet nicht gefunden oder nicht aktiv.")
+
+        return {
+            "status": "ok",
+            "athlete_id": athlete_id,
+            "week_start": week_start,
+            "data": data
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Fehler beim Laden der Planungsdaten: {str(e)}")
