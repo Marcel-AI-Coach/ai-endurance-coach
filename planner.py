@@ -10,7 +10,8 @@ def get_week_dates(week_start: str):
 
 def load_weekly_planning_data(db, athlete_id: int, week_start: str):
     week_dates = get_week_dates(week_start)
-    week_end = week_dates[-1]
+    week_start_date = week_dates[0]
+    week_end_date = week_dates[-1]
 
     athlete_query = text("""
         SELECT *
@@ -89,8 +90,8 @@ def load_weekly_planning_data(db, athlete_id: int, week_start: str):
         availability_query,
         {
             "athlete_id": athlete_id,
-            "week_start": str(week_dates[0]),
-            "week_end": str(week_end)
+            "week_start": str(week_start_date),
+            "week_end": str(week_end_date)
         }
     ).mappings().all()
 
@@ -98,8 +99,8 @@ def load_weekly_planning_data(db, athlete_id: int, week_start: str):
         competitions_query,
         {
             "athlete_id": athlete_id,
-            "week_start": str(week_dates[0]),
-            "week_end": str(week_end)
+            "week_start": str(week_start_date),
+            "week_end": str(week_end_date)
         }
     ).mappings().all()
 
@@ -107,8 +108,8 @@ def load_weekly_planning_data(db, athlete_id: int, week_start: str):
         training_sessions_query,
         {
             "athlete_id": athlete_id,
-            "week_start": str(week_dates[0]),
-            "week_end": str(week_end)
+            "week_start": str(week_start_date),
+            "week_end": str(week_end_date)
         }
     ).mappings().all()
 
