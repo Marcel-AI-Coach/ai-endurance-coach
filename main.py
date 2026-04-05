@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 
 from db import get_db, test_db_connection
-from planner import load_weekly_planning_data
+from planner import load_weekly_planning_data, generate_week_preview
 
 app = FastAPI(title="Coaching Platform API")
 
@@ -89,6 +89,20 @@ def planning_data(athlete_id: int, week_start: str, db: Session = Depends(get_db
         return {
             "status": "error",
             "endpoint": "planning-data",
+            "error_type": type(e).__name__,
+            "error_message": str(e)
+        }
+
+
+@app.get("/generate-week-preview")
+def generate_week_preview_endpoint(athlete_id: int, week_start: str, db: Session = Depends(get_db)):
+    try:
+        result = generate_week_preview(db, athlete_id, week_start)
+        return result
+    except Exception as e:
+        return {
+            "status": "error",
+            "endpoint": "generate-week-preview",
             "error_type": type(e).__name__,
             "error_message": str(e)
         }
