@@ -9,7 +9,7 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 # Fallback (nur falls Railway sie nicht liefert)
 if not DATABASE_URL:
     print("WARNUNG: DATABASE_URL nicht gesetzt – Fallback wird verwendet")
-    DATABASE_URL = "postgresql://postgres:DEIN_PASSWORT@postgres-icm2.railway.internal:5432/railway"
+    DATABASE_URL = "postgresql://postgres:YgtAjnPfOQNlOmmgSsGXwmXeIqjMmxBK@postgres-icm2.railway.internal:5432/railway"
 
 # Richtigen Treiber setzen (wichtig!)
 if DATABASE_URL.startswith("postgresql://"):
