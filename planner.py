@@ -241,11 +241,31 @@ def get_long_run_candidate_for_day(date_string, weekday_name, preferences, prima
     }
 
 
-def choose_single_long_run_date(week_dates, preferences, primary_sport_lookup):
+def choose_single_long_run_date(
+    week_dates,
+    preferences,
+    primary_sport_lookup,
+    availability_entries,
+    competitions,
+    training_sessions
+):
     candidates = []
 
     for date_string in week_dates:
         weekday_name = get_day_name(date_string)
+
+        availability_entry = get_availability_for_day(availability_entries, date_string)
+        if availability_entry is not None and availability_entry.get("available") is False:
+            continue
+
+        existing_session = get_existing_training_session_for_day(training_sessions, date_string)
+        if existing_session:
+            continue
+
+        competition = get_competition_for_day(competitions, date_string)
+        if competition:
+            continue
+
         candidate = get_long_run_candidate_for_day(
             date_string,
             weekday_name,
@@ -366,7 +386,10 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
     selected_long_run_date = choose_single_long_run_date(
         data["week_dates"],
         data["athlete_training_preferences"],
-        primary_sport_lookup
+        primary_sport_lookup,
+        data["athlete_availability"],
+        data["competitions"],
+        data["training_sessions"]
     )
 
     preview_days = []
@@ -453,6 +476,16 @@ def generate_week_preview(db, athlete_id: int, week_start: str):
                         date_string,
                         weekday_name,
                         "long_run_not_selected_for_this_week"
+                    )
+                )
+                continue
+
+            if selected_long_run_date is None:
+                preview_days.append(
+                    build_preview_item_for_rest_day(
+                        date_string,
+                        weekday_name,
+                        "no_available_long_run_day_this_week"
                     )
                 )
                 continue
